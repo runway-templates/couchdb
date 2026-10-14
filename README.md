@@ -18,21 +18,27 @@ WIP
 
 ## Connecting
 
-This one **is** routed: it gets a public HTTPS URL, so apps, PouchDB, and the
-web UI can reach it. Every request except `/_up` needs a login.
+This one **is** routed. It gets a public HTTPS URL:
+
+```
+https://<app>.pqapp.dev
+```
+
+`<app>` is your app name. Apps, PouchDB, and the web UI connect there.
+Every request except `/_up` needs a login.
 
 The credentials are in the app config:
 
 ```sh
-runway app config ls --app my-couch
+runway app config ls --app <app>
 ```
 
-- Web UI: `https://my-couch.example.com/_utils/`, log in with `<username>`
+- Web UI: `https://<app>.pqapp.dev/_utils/`, log in with `<username>`
   and `COUCHDB_PASSWORD`.
 - API:
 
   ```sh
-  curl -u <username>:<COUCHDB_PASSWORD> https://my-couch.example.com/_all_dbs
+  curl -u <username>:<COUCHDB_PASSWORD> https://<app>.pqapp.dev/_all_dbs
   ```
 
 New databases are admin-only. Set `_security` on a database to give other
