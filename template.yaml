@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/runway-templates/schema/refs/heads/main/v1alpha1.json
+apiVersion: schema.runway.horse/templates/v1alpha1
+kind: Template
+
+metadata:
+  name: couchdb
+  version: 0.1.0
+  displayName: CouchDB
+  description: |
+    Document database with an HTTP/JSON API, the Fauxton web UI, and
+    multi-master replication. Syncs with PouchDB in the browser. Single node
+    with persistence on a volume. Published on a public HTTPS route; every
+    request needs a login.
+  category: database
+  tags: [couchdb, nosql, document, json, database, replication, pouchdb, oss]
+  logo: ./logo.svg
+  documentation: https://docs.couchdb.org/en/stable/
+  website: https://couchdb.apache.org
+  source: https://github.com/apache/couchdb
+  license: Apache-2.0
+  maintainer: runway
+
+inputs:
+  username:
+    type: string
+    default: "admin"
+    pattern: "^[a-zA-Z][a-zA-Z0-9_-]{0,31}$"
+    description: Server admin, for the API and the Fauxton web UI.
+
+services:
+  - name: couchdb
+    image: "r.planetary-quantum.com/docker-hub-proxy/library/couchdb:3.5.3"
+
+    # /opt/couchdb/etc is not on the volume, so config is rebuilt on every
+    # start. Pin the UUID (replication checkpoints depend on it) and turn on
+    # single-node mode (creates _users and _replicator), then hand off to the
+    # image entrypoint, which adds the admin and the cookie secret.
+    args:
+      - sh
+      - -c
+      - |
+        printf '[couchdb]\nsingle_node = true\nuuid = %s\n' "$COUCHDB_UUID" > /opt/couchdb/etc/local.d/00-runway.ini
+        exec /docker-entrypoint.sh /opt/couchdb/bin/couchdb
+
+    env:
+      PORT: "5984"
+      COUCHDB_USER: "${{ inputs.username }}"
+      COUCHDB_PASSWORD:
+        value: "${{ runway.secret(32) }}"
+        description: Server admin password, for the API and the web UI.
+        warning: |
+          Applied on every start. Changing it here restarts CouchDB with the
+          new one and locks out any client still holding the old value. A
+          password changed in Fauxton or over the API is lost on restart —
+          change it here instead.
+      COUCHDB_SECRET:
+        value: "${{ runway.secret(64) }}"
+        description: Signs session cookies.
+        warning: Changing it logs out every cookie session.
+      COUCHDB_UUID:
+        value: "${{ runway.secret(32) }}"
+        description: Server UUID. Replication checkpoints are tied to it.
+        warning: |
+          Changing it makes every replication start over from the
+          beginning.
+
+    volume:
+      mountPath: /opt/couchdb/data
+
+    # matches the couchdb user in the image
+    runAs:
+      user: 5984
+      group: 5984
+
+    healthcheck:
+      type: http
+      # /_up needs no login.
+      path: /_up
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      timeoutSeconds: 5
+
+    settings:
+      # PouchDB, apps, and Fauxton connect over HTTPS; new databases are
+      # admin-only until you set their _security.
+      route: true
+
+    minPlan: start-m-launch
