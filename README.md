@@ -51,9 +51,12 @@ users access, and do not ship the admin password to browsers.
   lost on restart. This includes the admin password — change
   `COUCHDB_PASSWORD` in the app config instead. It applies on the next
   start.
-- **The template wraps the start command.** It writes
-  `local.d/00-runway.ini` (single-node mode and a fixed `COUCHDB_UUID`), then
-  runs the image entrypoint, which adds the admin and `COUCHDB_SECRET`.
+- **The template wraps the start command.** Like the
+  image entrypoint does for `COUCHDB_SECRET`, it adds single-node mode and a
+  fixed `COUCHDB_UUID` to `local.d/docker.ini`, then runs the image
+  entrypoint, which adds the admin and `COUCHDB_SECRET`.
+- **The node name is fixed** to `couchdb@127.0.0.1`. Shard maps in the data
+  are tied to it, so it is set in the start command, not in the app config.
 - `single_node = true` creates `_users` and `_replicator` on first start.
 - Do not change `COUCHDB_UUID`: replication checkpoints are tied to it, and
   every replication would start over.
