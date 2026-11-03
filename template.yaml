@@ -32,15 +32,19 @@ services:
     image: "r.planetary-quantum.com/docker-hub-proxy/library/couchdb:3.5.3"
 
     # /opt/couchdb/etc is not on the volume, so config is rebuilt on every
-    # start. Pin the UUID (replication checkpoints depend on it) and turn on
-    # single-node mode (creates _users and _replicator), then hand off to the
-    # image entrypoint, which adds the admin and the cookie secret.
+    # start. Like the image entrypoint does for COUCHDB_SECRET, add the UUID
+    # (replication checkpoints depend on it) and single-node mode (creates
+    # _users and _replicator) to docker.ini, then hand off to the entrypoint,
+    # which adds the admin, the cookie secret and the node name. The node
+    # name is fixed: shard maps in the data are tied to it.
     args:
       - sh
       - -c
       - |
-        printf '[couchdb]\nsingle_node = true\nuuid = %s\n' "$COUCHDB_UUID" > /opt/couchdb/etc/local.d/00-runway.ini
-        exec /docker-entrypoint.sh /opt/couchdb/bin/couchdb
+        if ! grep -Pzoqr "\[couchdb\]\nsingle_node = true\nuuid =" /opt/couchdb/etc/local.d/*.ini /opt/couchdb/etc/local.ini; then
+          printf "\n[couchdb]\nsingle_node = true\nuuid = %s\n" "$COUCHDB_UUID" >> /opt/couchdb/etc/local.d/docker.ini
+        fi
+        NODENAME=127.0.0.1 exec /docker-entrypoint.sh /opt/couchdb/bin/couchdb
 
     env:
       PORT: "5984"
