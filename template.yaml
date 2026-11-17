@@ -4,7 +4,7 @@ kind: Template
 
 metadata:
   name: couchdb
-  version: 0.1.0
+  version: 0.2.0
   displayName: CouchDB
   description: |
     Document database with an HTTP/JSON API, the Fauxton web UI, and
@@ -75,6 +75,9 @@ services:
     runAs:
       user: 5984
       group: 5984
+
+    outputs:
+      URL: "http://${{ inputs.username }}:${{ env.COUCHDB_PASSWORD }}@${{ runway.internal_address }}"
 
     healthcheck:
       type: http

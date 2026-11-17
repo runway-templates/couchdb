@@ -16,6 +16,10 @@ WIP
 | --- | --- | --- |
 | `username` | `admin` | Server admin for the API and Fauxton |
 
+## Outputs
+
+`URL`
+
 ## Connecting
 
 This one **is** routed. It gets a public HTTPS URL:
